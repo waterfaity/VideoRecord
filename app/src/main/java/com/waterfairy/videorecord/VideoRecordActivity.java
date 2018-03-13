@@ -6,7 +6,6 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.SurfaceView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -86,8 +85,10 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     //intent_str
     public static final String STR_QUALITY = "record_video_quality";
     public static final String STR_VIDEO_PATH = "record_video_path";
+    public static final String STR_VIDEO_DURATION = "record_video_duration";
     public static final String RESULT_STR_VIDEO_PATH = "videoPath";
     private boolean canFinish;
+    private int mDuration = 60;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +105,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         Intent intent = getIntent();
         mQuality = intent.getIntExtra(STR_QUALITY, QUALITY_720P);
         mVideoPath = intent.getStringExtra(STR_VIDEO_PATH);
+        mDuration = intent.getIntExtra(STR_VIDEO_DURATION, 60);
     }
 
     private void findView() {
@@ -119,7 +121,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private void initData() {
         mVideoRecordTool = VideoRecordTool.getInstance();
         mVideoRecordTool.setOnVideoRecordListener(this);
-        mVideoRecordTool.setCamcorderProfile(mQuality);
+        mVideoRecordTool.initCamcorderProfile(mQuality);
+        mVideoRecordTool.setMaxLenTime(mDuration);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             mVideoRecordTool.setAngle(90);
         }

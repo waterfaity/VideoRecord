@@ -41,6 +41,7 @@ public class VideoRecordTool {
     private Handler handler;
     private int currentTime = 0;
     private int angle;//camera angle
+    private int maxLen = 60;//max len  time   default 60s
 
 
     public VideoRecordTool() {
@@ -63,6 +64,12 @@ public class VideoRecordTool {
         return this;
     }
 
+    public VideoRecordTool setMaxLenTime(int maxLen) {
+        this.maxLen = maxLen;
+        return this;
+    }
+
+
     public VideoRecordTool init() {
         initHolder();
         initCamera();
@@ -70,7 +77,7 @@ public class VideoRecordTool {
     }
 
 
-    public void setCamcorderProfile(int camcorderProfile) {
+    public void initCamcorderProfile(int camcorderProfile) {
         this.camcorderProfile = CamcorderProfile.get(camcorderProfile);
     }
 
@@ -201,16 +208,23 @@ public class VideoRecordTool {
                 onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化mediaRecorder");
         }
         isRecording = false;
+        currentTime = 0;
     }
 
     private Handler getHandler() {
         return new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                if (onVideoRecordListener != null)
-                    onVideoRecordListener.onRecordingVideo(currentTime);
-                currentTime++;
-                handler.sendEmptyMessageDelayed(0, 1000);
+                if (currentTime >= 60) {
+                    //录制结束
+                    stop();
+
+                } else {
+                    if (onVideoRecordListener != null)
+                        onVideoRecordListener.onRecordingVideo(currentTime);
+                    currentTime++;
+                    handler.sendEmptyMessageDelayed(0, 1000);
+                }
             }
         };
     }
