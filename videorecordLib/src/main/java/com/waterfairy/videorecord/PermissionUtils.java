@@ -1,4 +1,4 @@
-package com.waterfairy.videorecordtest;
+package com.waterfairy.videorecord;
 
 import android.Manifest;
 import android.app.Activity;

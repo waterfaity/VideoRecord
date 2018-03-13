@@ -1,4 +1,4 @@
-package com.waterfairy.videorecordtest;
+package com.waterfairy.videorecord;
 
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
@@ -32,14 +32,15 @@ public class VideoRecordTool {
     private boolean isRecording;
 
 
-    private int ERROR_FILE_NOT_EXIST = 1;
-    private int ERROR_MEDIA_RECORD_PREPARE = 2;
-    private int WARM_IS_RECORDING = 3;
-    private int WARM_MEDIA_RECORDER_IS_NULL = 4;
+    private int ERROR_FILE_NOT_EXIST = 1;//文件不存在
+    private int ERROR_MEDIA_RECORD_PREPARE = 2;//mediaRecorder 准备失败
+    private int WARM_IS_RECORDING = 3;//录制中
+    private int WARM_MEDIA_RECORDER_IS_NULL = 4;//空
     private Camera.Parameters mParameters;
-    private SurfaceView sufaceView;
+    private SurfaceView surfaceView;
     private Handler handler;
     private int currentTime = 0;
+    private int angle;//camera angle
 
 
     public VideoRecordTool() {
@@ -57,7 +58,7 @@ public class VideoRecordTool {
                 onVideoRecordListener.onRecordVideoError(ERROR_FILE_NOT_EXIST, "文件不存在");
             }
         } else {
-            this.sufaceView = surfaceView;
+            this.surfaceView = surfaceView;
         }
         return this;
     }
@@ -65,7 +66,6 @@ public class VideoRecordTool {
     public VideoRecordTool init() {
         initHolder();
         initCamera();
-//        initMediaRecord();
         return this;
     }
 
@@ -78,7 +78,7 @@ public class VideoRecordTool {
      * 1
      */
     private void initHolder() {
-        mHolder = sufaceView.getHolder();
+        mHolder = surfaceView.getHolder();
         mHolder.addCallback(holderCallBack == null ? holderCallBack = new HolderCallBack() : holderCallBack);
     }
 
@@ -90,14 +90,22 @@ public class VideoRecordTool {
         mParameters = camera.getParameters();
         mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
         camera.setParameters(mParameters);
-        camera.autoFocus(new Camera.AutoFocusCallback() {
-            @Override
-            public void onAutoFocus(boolean success, Camera camera) {
-                if (success) {
+
+        try {
+            if (angle != 0)
+                camera.setDisplayOrientation(angle);
+            camera.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
+                    if (success) {
 //                    Log.d(TAG, "自动对焦成功");
+                    }
                 }
-            }
-        });
+            });
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+        }
+
         //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
         camera.setPreviewCallback(new Camera.PreviewCallback() {
             @Override
@@ -114,6 +122,7 @@ public class VideoRecordTool {
      */
     private boolean initMediaRecord() {
         mediaRecorder = new MediaRecorder();
+        mediaRecorder.reset();
         camera.unlock();
         mediaRecorder.setCamera(camera);//设置camera
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);//音频输入源
@@ -123,6 +132,7 @@ public class VideoRecordTool {
                 camcorderProfile);
         mediaRecorder.setPreviewDisplay(mHolder.getSurface());
         mediaRecorder.setOutputFile(filePath);
+        if (angle != 0) mediaRecorder.setOrientationHint(angle);
         try {
             mediaRecorder.prepare();
             return true;
@@ -191,7 +201,6 @@ public class VideoRecordTool {
                 onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化mediaRecorder");
         }
         isRecording = false;
-
     }
 
     private Handler getHandler() {
@@ -218,6 +227,14 @@ public class VideoRecordTool {
             mediaRecorder = null;
             camera.lock();
         }
+    }
+
+    public void onDestroy() {
+        releaseMediaRecorder();
+    }
+
+    public void setAngle(int angle) {
+        this.angle = angle;
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.waterfairy.videorecordtest;
+package com.waterfairy.videorecord;
 
 /**
  * @author water_fairy

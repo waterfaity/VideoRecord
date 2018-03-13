@@ -7,24 +7,16 @@
     android:layout_height="match_parent"
     tools:context="com.waterfairy.videorecordtest.MainActivity">
 
-    <SurfaceView
-        android:id="@+id/surface_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:onClick="onClick"/>
+
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-
         <Button
             android:layout_width="wrap_content"
+            android:text="luxiang"
             android:layout_height="wrap_content"
-            android:onClick="start"/>
+            android:onClick="onClick"/>
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="end"/>
     </LinearLayout>
 </RelativeLayout>

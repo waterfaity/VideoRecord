@@ -1,4 +1,4 @@
-package com.waterfairy.videorecordtest;
+package com.waterfairy.videorecord;
 
 import android.os.AsyncTask;
 import android.util.Log;
