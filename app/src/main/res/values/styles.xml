@@ -4,4 +4,8 @@
     <style name="bt_record_style" parent="Widget.AppCompat.CompoundButton.CheckBox">
         <item name="android:button">@drawable/bg_bt_record</item>
     </style>
+
+    <style name="FullScreen" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+    </style>
 </resources>

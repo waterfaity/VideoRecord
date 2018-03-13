@@ -4,10 +4,12 @@
 
     <application>
         <activity
+            android:theme="@style/FullScreen"
             android:name=".VideoRecordActivity"
             android:screenOrientation="landscape">
         </activity>
         <activity
+            android:theme="@style/FullScreen"
             android:name=".VideoRecordPortActivity"
             android:screenOrientation="portrait">
         </activity>
