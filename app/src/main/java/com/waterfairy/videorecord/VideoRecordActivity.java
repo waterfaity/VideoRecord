@@ -2,6 +2,7 @@ package com.waterfairy.videorecord;
 
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -85,6 +86,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     //intent_str
     public static final String STR_QUALITY = "record_video_quality";
     public static final String STR_VIDEO_PATH = "record_video_path";
+    public static final String RESULT_STR_VIDEO_PATH = "videoPath";
+    private boolean canFinish;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,26 +167,32 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     @Override
     protected void onResume() {
         super.onResume();
-        if (mActivityState == STATE_PAUSE) {
-            setContentView(R.layout.activity_video_record);
-            findView();
-            initView();
-            boolean success = createFile();
-            if (success) {
-                mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
-                mVideoRecordTool.init();
-            } else {
-                Toast.makeText(this, "文件创建失败,请检查是否有SD卡读取权限", Toast.LENGTH_SHORT).show();
+        if (canFinish) {
+            finish();
+        } else {
+            if (mActivityState == STATE_PAUSE) {
+                setContentView(R.layout.activity_video_record);
+                findView();
+                initView();
+                boolean success = createFile();
+                if (success) {
+                    mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
+                    mVideoRecordTool.init();
+                } else {
+                    Toast.makeText(this, "文件创建失败,请检查是否有SD卡读取权限", Toast.LENGTH_SHORT).show();
+                }
             }
+            mActivityState = STATE_RESUME;
         }
-        mActivityState = STATE_RESUME;
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mActivityState = STATE_PAUSE;
-        mVideoRecordTool.onPause();
+        if (!canFinish)
+            mVideoRecordTool.onPause();
+
     }
 
     @Override
@@ -204,7 +213,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     @Override
     public void onRecordVideoStart() {
-
+        Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -214,18 +223,29 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     @Override
     public void onRecordVideoEnd(String filePath, boolean handle) {
-
+        Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show();
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra(RESULT_STR_VIDEO_PATH, filePath);
+        setResult(RESULT_OK, resultIntent);
+        if (handle) {
+            finish();
+        }
+        if (mActivityState == STATE_PAUSE) {
+            canFinish = true;
+        }
     }
 
     @Override
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             mVideoRecordTool.start();
-            Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show();
-
         } else {
             mVideoRecordTool.stop();
-            Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }
