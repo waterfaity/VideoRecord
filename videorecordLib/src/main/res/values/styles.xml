@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-
-    <style name="bt_record_style" parent="Widget.AppCompat.CompoundButton.CheckBox">
-        <item name="android:button">@drawable/bg_bt_record</item>
-    </style>
-</resources>
