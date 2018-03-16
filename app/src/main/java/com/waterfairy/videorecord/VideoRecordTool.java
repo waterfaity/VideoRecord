@@ -5,6 +5,7 @@ import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -241,6 +242,9 @@ public class VideoRecordTool {
             mediaRecorder = null;
             camera.lock();
         }
+        if (camera != null) {
+            camera.lock();
+        }
     }
 
     public void onDestroy() {
@@ -274,6 +278,7 @@ public class VideoRecordTool {
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
             holder.removeCallback(holderCallBack);
+            Log.i(TAG, "surfaceDestroyed: ");
             camera.setPreviewCallback(null);
             camera.stopPreview();
             camera.release();

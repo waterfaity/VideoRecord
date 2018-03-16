@@ -86,9 +86,11 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     public static final String STR_QUALITY = "record_video_quality";
     public static final String STR_VIDEO_PATH = "record_video_path";
     public static final String STR_VIDEO_DURATION = "record_video_duration";
+    public static final String STR_FOR_RESULT = "result_str";
     public static final String RESULT_STR_VIDEO_PATH = "videoPath";
     private boolean canFinish;
     private int mDuration = 60;
+    private String mStrResult;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +108,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         mQuality = intent.getIntExtra(STR_QUALITY, QUALITY_720P);
         mVideoPath = intent.getStringExtra(STR_VIDEO_PATH);
         mDuration = intent.getIntExtra(STR_VIDEO_DURATION, 60);
+        mStrResult = intent.getStringExtra(STR_FOR_RESULT);
     }
 
     private void findView() {
@@ -202,6 +205,13 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     protected void onDestroy() {
         super.onDestroy();
         mVideoRecordTool.onDestroy();
+
+        mStrResult=null;
+        mVideoRecordTool=null;
+        mTVTime=null;
+        mBTRecord=null;
+        mVideoPath=null;
+        mSurfaceView=null;
     }
 
     @Override
@@ -228,7 +238,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     public void onRecordVideoEnd(String filePath, boolean handle) {
         Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show();
         Intent resultIntent = new Intent();
-        resultIntent.putExtra(RESULT_STR_VIDEO_PATH, filePath);
+        resultIntent.putExtra(TextUtils.isEmpty(mStrResult) ? RESULT_STR_VIDEO_PATH : mStrResult, filePath);
         setResult(RESULT_OK, resultIntent);
         if (handle) {
             finish();
