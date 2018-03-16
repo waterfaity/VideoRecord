@@ -25,7 +25,6 @@
         android:textSize="14dp"/>
 
 
-
     <CheckBox
         android:id="@+id/tb_record"
         style="@style/bt_record_style"
@@ -36,6 +35,24 @@
         android:layout_marginBottom="5dp"
         android:checked="false"/>
 
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignTop="@+id/tb_record"
+        android:layout_marginBottom="5dp"
+        android:layout_toRightOf="@+id/tb_record">
+
+        <ImageView
+            android:id="@+id/chang_camera"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_centerInParent="true"
+            android:layout_marginBottom="5dp"
+            android:padding="5dp"
+            android:src="@mipmap/change"/>
+    </RelativeLayout>
 
 
 </RelativeLayout>

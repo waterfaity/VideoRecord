@@ -6,7 +6,9 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.SurfaceView;
+import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
@@ -17,7 +19,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class VideoRecordActivity extends AppCompatActivity implements OnVideoRecordListener, CompoundButton.OnCheckedChangeListener {
+public class VideoRecordActivity extends AppCompatActivity implements OnVideoRecordListener, CompoundButton.OnCheckedChangeListener, View.OnClickListener {
+    private static final String TAG = "VideoRecordActivity";
     private TextView mTVTime;
     private SurfaceView mSurfaceView;
     private CheckBox mBTRecord;
@@ -91,6 +94,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private boolean canFinish;
     private int mDuration = 60;
     private String mStrResult;
+    private View mIVChangeCamera;//前置后置摄像头切换
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,8 +102,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         setContentView(R.layout.activity_video_record);
         getExtra();
         findView();
-        initView();
         initData();
+        initView();
     }
 
 
@@ -115,10 +119,13 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         mBTRecord = findViewById(R.id.tb_record);
         mTVTime = findViewById(R.id.time);
         mSurfaceView = findViewById(R.id.surface_view);
+        mIVChangeCamera = findViewById(R.id.chang_camera);
     }
 
     private void initView() {
         mBTRecord.setOnCheckedChangeListener(this);
+        mIVChangeCamera.setOnClickListener(this);
+
     }
 
     private void initData() {
@@ -177,18 +184,26 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             finish();
         } else {
             if (mActivityState == STATE_PAUSE) {
-                setContentView(R.layout.activity_video_record);
-                findView();
-                initView();
-                boolean success = createFile();
-                if (success) {
-                    mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
-                    mVideoRecordTool.init();
-                } else {
-                    Toast.makeText(this, "文件创建失败,请检查是否有SD卡读取权限", Toast.LENGTH_SHORT).show();
-                }
+                resetView();
             }
             mActivityState = STATE_RESUME;
+        }
+    }
+
+    private void resetView() {
+        resetView(mVideoRecordTool.isBackCamera());
+    }
+
+    private void resetView(boolean isBackCamera) {
+        setContentView(R.layout.activity_video_record);
+        findView();
+        initView();
+        boolean success = createFile();
+        if (success) {
+            mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
+            mVideoRecordTool.init(isBackCamera);
+        } else {
+            Toast.makeText(this, "文件创建失败,请检查是否有SD卡读取权限", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -198,7 +213,6 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         mActivityState = STATE_PAUSE;
         if (!canFinish)
             mVideoRecordTool.onPause();
-
     }
 
     @Override
@@ -206,27 +220,28 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         super.onDestroy();
         mVideoRecordTool.onDestroy();
 
-        mStrResult=null;
-        mVideoRecordTool=null;
-        mTVTime=null;
-        mBTRecord=null;
-        mVideoPath=null;
-        mSurfaceView=null;
+        mStrResult = null;
+        mVideoRecordTool = null;
+        mTVTime = null;
+        mBTRecord = null;
+        mVideoPath = null;
+        mSurfaceView = null;
     }
 
     @Override
     public void onRecordVideoWarm(int code, String warmMsg) {
-
+        Log.i(TAG, "onRecordVideoWarm: " + warmMsg);
     }
 
     @Override
     public void onRecordVideoError(int code, String errMsg) {
-
+        Toast.makeText(this, errMsg, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onRecordVideoStart() {
         Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show();
+        mIVChangeCamera.setVisibility(View.GONE);
     }
 
     @Override
@@ -260,5 +275,17 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (v.getId() == R.id.chang_camera) {
+            boolean backCamera = mVideoRecordTool.isBackCamera();
+            if (backCamera && mVideoRecordTool.isFrontCameraCanUse()) {
+                resetView(false);
+            } else if (!backCamera && mVideoRecordTool.isBackCameraCanUse()) {
+                resetView(true);
+            }
+        }
     }
 }

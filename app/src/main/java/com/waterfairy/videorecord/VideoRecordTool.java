@@ -22,31 +22,44 @@ import java.io.IOException;
 
 public class VideoRecordTool {
     private static final String TAG = "VideoRecordTool";
-    private MediaRecorder mediaRecorder;
-    private Camera camera;
-    private SurfaceHolder mHolder;
+    //单例
     private static VideoRecordTool videoRecordTool;
-    private OnVideoRecordListener onVideoRecordListener;
-    private HolderCallBack holderCallBack;
-    private CamcorderProfile camcorderProfile;
-    private String filePath;
-    private boolean isRecording;
-
-
+    //静态定值量
     private int ERROR_FILE_NOT_EXIST = 1;//文件不存在
     private int ERROR_MEDIA_RECORD_PREPARE = 2;//mediaRecorder 准备失败
     private int WARM_IS_RECORDING = 3;//录制中
     private int WARM_MEDIA_RECORDER_IS_NULL = 4;//空
+    private int ERROR_NO_CAMERA = 5;//空
+    private int ERROR_OPEN_CAMERA = 6;//空
+    //相机
+    private Camera camera;
     private Camera.Parameters mParameters;
+    private CamcorderProfile camcorderProfile;
+    //surfaceView
     private SurfaceView surfaceView;
+    private SurfaceHolder mHolder;
+    private HolderCallBack holderCallBack;
+    //录像
+    private MediaRecorder mediaRecorder;
+    //监听
+    private OnVideoRecordListener onVideoRecordListener;
+    //计时
     private Handler handler;
+    //data
+    private String filePath;
+    private boolean isRecording;
     private int currentTime = 0;
     private int angle;//camera angle
     private int maxLen = 60;//max len  time   default 60s
+    private boolean isBackCamera = true;
+    private boolean isFrontCameraCanUse = false;
+    private boolean isBackCameraCanUse = false;
 
 
     public VideoRecordTool() {
-
+        currentTime = 0;
+        angle = 0;
+        maxLen = 60;
     }
 
     public static VideoRecordTool getInstance() {
@@ -70,8 +83,15 @@ public class VideoRecordTool {
         return this;
     }
 
-
     public VideoRecordTool init() {
+        return init(isBackCamera);
+    }
+
+    public VideoRecordTool init(boolean isBackCamera) {
+        if (camera != null) {
+            releaseMediaRecorder();
+        }
+        this.isBackCamera = isBackCamera;
         initHolder();
         initCamera();
         return this;
@@ -94,7 +114,42 @@ public class VideoRecordTool {
      * 2
      */
     private void initCamera() {
-        camera = Camera.open();
+        int numberOfCameras = Camera.getNumberOfCameras();
+        if (numberOfCameras == 0) {
+            if (onVideoRecordListener != null)
+                onVideoRecordListener.onRecordVideoError(ERROR_NO_CAMERA, "未发现摄像头");
+            return;
+        }
+        int backId = -1, frontId = -1;
+        for (int i = 0; i < numberOfCameras; i++) {
+            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+            Camera.getCameraInfo(i, cameraInfo);
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                isBackCameraCanUse = true;
+                backId = i;
+            } else if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                isFrontCameraCanUse = true;
+                frontId = i;
+            }
+        }
+        if (isBackCamera) {
+            if (backId != -1)
+                camera = Camera.open(backId);
+            else if (isFrontCameraCanUse) {
+                camera = Camera.open(frontId);
+            }
+        } else {
+            if (frontId != -1)
+                camera = Camera.open(frontId);
+            else if (isBackCameraCanUse) {
+                camera = Camera.open(backId);
+            }
+        }
+        if (camera == null) {
+            if (onVideoRecordListener != null)
+                onVideoRecordListener.onRecordVideoError(ERROR_OPEN_CAMERA, "摄像头打开失败");
+            return;
+        }
         mParameters = camera.getParameters();
         mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
         camera.setParameters(mParameters);
@@ -140,7 +195,12 @@ public class VideoRecordTool {
                 camcorderProfile);
         mediaRecorder.setPreviewDisplay(mHolder.getSurface());
         mediaRecorder.setOutputFile(filePath);
-        if (angle != 0) mediaRecorder.setOrientationHint(angle);
+        if (angle != 0) {
+            if (isBackCamera)
+                mediaRecorder.setOrientationHint(angle);
+            else mediaRecorder.setOrientationHint(angle + 180);
+
+        }
         try {
             mediaRecorder.prepare();
             return true;
@@ -198,6 +258,7 @@ public class VideoRecordTool {
     }
 
     private void stop(boolean pause) {
+        Log.i(TAG, "stop: ");
         if (mediaRecorder != null) {
             mediaRecorder.stop();
             releaseMediaRecorder();
@@ -240,7 +301,6 @@ public class VideoRecordTool {
             mediaRecorder.reset();
             mediaRecorder.release();
             mediaRecorder = null;
-            camera.lock();
         }
         if (camera != null) {
             camera.lock();
@@ -251,6 +311,11 @@ public class VideoRecordTool {
         releaseMediaRecorder();
     }
 
+    /**
+     * 大于0
+     *
+     * @param angle
+     */
     public void setAngle(int angle) {
         this.angle = angle;
     }
@@ -284,5 +349,17 @@ public class VideoRecordTool {
             camera.release();
             camera = null;
         }
+    }
+
+    public boolean isBackCamera() {
+        return isBackCamera;
+    }
+
+    public boolean isFrontCameraCanUse() {
+        return isFrontCameraCanUse;
+    }
+
+    public boolean isBackCameraCanUse() {
+        return isBackCameraCanUse;
     }
 }
