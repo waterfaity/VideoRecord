@@ -150,13 +150,18 @@ public class VideoRecordTool {
                 onVideoRecordListener.onRecordVideoError(ERROR_OPEN_CAMERA, "摄像头打开失败");
             return;
         }
-        mParameters = camera.getParameters();
-        mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-        camera.setParameters(mParameters);
-
+        //角度
         try {
             if (angle != 0)
                 camera.setDisplayOrientation(angle);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        //自动对焦
+        try {
+            mParameters = camera.getParameters();
+            mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+            camera.setParameters(mParameters);
             camera.autoFocus(new Camera.AutoFocusCallback() {
                 @Override
                 public void onAutoFocus(boolean success, Camera camera) {
@@ -170,7 +175,9 @@ public class VideoRecordTool {
         }
 
         //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
-        camera.setPreviewCallback(new Camera.PreviewCallback() {
+        camera.setPreviewCallback(new Camera.PreviewCallback()
+
+        {
             @Override
             public void onPreviewFrame(byte[] data, Camera camera) {
 //                Log.i(TAG, "获取预览帧...");
@@ -349,6 +356,7 @@ public class VideoRecordTool {
             camera.release();
             camera = null;
         }
+
     }
 
     public boolean isBackCamera() {
