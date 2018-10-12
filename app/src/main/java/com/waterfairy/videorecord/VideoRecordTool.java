@@ -186,9 +186,7 @@ public class VideoRecordTool {
         }
 
         //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
-        camera.setPreviewCallback(new Camera.PreviewCallback()
-
-        {
+        camera.setPreviewCallback(new Camera.PreviewCallback() {
             @Override
             public void onPreviewFrame(byte[] data, Camera camera) {
 //                Log.i(TAG, "获取预览帧...");
@@ -208,7 +206,6 @@ public class VideoRecordTool {
         mediaRecorder.setCamera(camera);//设置camera
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);//音频输入源
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);//视频输入源
-        Log.i(TAG, "initMediaRecord: " + new Camera.CameraInfo().facing);
         if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
             mediaRecorder.setProfile(camcorderProfile == null ?//设置质量 默认720p
                     camcorderProfile = CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P) :
@@ -304,7 +301,6 @@ public class VideoRecordTool {
             } else {
                 if (onVideoRecordListener != null)
                     onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_NO_RECORDING, "停止失败,未开始录制");
-
             }
 
         } else {
