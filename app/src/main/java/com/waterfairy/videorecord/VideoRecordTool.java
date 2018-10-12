@@ -246,7 +246,7 @@ public class VideoRecordTool {
      */
     public void start() {
         if (!isRecording) {
-            if (isRecording = initMediaRecord()) {
+            if (initMediaRecord()) {
                 try {
                     mediaRecorder.start();
                     if (handler == null) handler = getHandler();
@@ -254,13 +254,14 @@ public class VideoRecordTool {
                     handler.removeMessages(0);
                     handler.sendEmptyMessageDelayed(0, 0);
                     if (onVideoRecordListener != null) onVideoRecordListener.onRecordVideoStart();
+                    isRecording = true;
                 } catch (Exception e) {
+                    isRecording = false;
                     e.printStackTrace();
                     if (onVideoRecordListener != null) {
                         onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_START, "视频录制开始失败");
                     }
                 }
-
             } else {
                 if (onVideoRecordListener != null) {
                     onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_PREPARE, "视频录制准备失败");

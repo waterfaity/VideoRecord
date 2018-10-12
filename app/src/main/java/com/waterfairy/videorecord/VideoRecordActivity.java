@@ -188,12 +188,12 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             }
             mActivityState = STATE_RESUME;
         }
-//        if (mVideoRecordTool != null) {
-//            if (!mVideoRecordTool.isBackCameraCanUse() || mVideoRecordTool.isFrontCameraCanUse()) {
-//                //单摄像头
-//                mIVChangeCamera.setVisibility(View.GONE);
-//            }
-//        }
+        if (mVideoRecordTool != null) {
+            if (!mVideoRecordTool.isBackCameraCanUse() || !mVideoRecordTool.isFrontCameraCanUse()) {
+                //单摄像头
+                mIVChangeCamera.setVisibility(View.GONE);
+            }
+        }
     }
 
     private void resetView() {
@@ -242,6 +242,9 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     @Override
     public void onRecordVideoError(int code, String errMsg) {
         Toast.makeText(this, errMsg, Toast.LENGTH_SHORT).show();
+        mBTRecord.setOnCheckedChangeListener(null);
+        mBTRecord.setChecked(false);
+        mBTRecord.setOnCheckedChangeListener(this);
     }
 
     @Override
