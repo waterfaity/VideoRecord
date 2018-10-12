@@ -27,8 +27,10 @@ public class VideoRecordTool {
     //静态定值量
     private int ERROR_FILE_NOT_EXIST = 1;//文件不存在
     private int ERROR_MEDIA_RECORD_PREPARE = 2;//mediaRecorder 准备失败
+    private int ERROR_MEDIA_RECORD_START = 3;//mediaRecorder 开始录制失败
     private int WARM_IS_RECORDING = 3;//录制中
     private int WARM_MEDIA_RECORDER_IS_NULL = 4;//空
+    private int WARM_MEDIA_NO_RECORDING = 5;//未开始录制
     private int ERROR_NO_CAMERA = 5;//空
     private int ERROR_OPEN_CAMERA = 6;//空
     //相机
@@ -54,6 +56,7 @@ public class VideoRecordTool {
     private boolean isBackCamera = true;
     private boolean isFrontCameraCanUse = false;
     private boolean isBackCameraCanUse = false;
+    private int cameraId = 0;
 
 
     public VideoRecordTool() {
@@ -87,6 +90,12 @@ public class VideoRecordTool {
         return init(isBackCamera);
     }
 
+    /**
+     * 改变摄像头
+     *
+     * @param isBackCamera
+     * @return
+     */
     public VideoRecordTool init(boolean isBackCamera) {
         if (camera != null) {
             releaseMediaRecorder();
@@ -133,18 +142,20 @@ public class VideoRecordTool {
             }
         }
         if (isBackCamera) {
-            if (backId != -1)
-                camera = Camera.open(backId);
-            else if (isFrontCameraCanUse) {
-                camera = Camera.open(frontId);
+            if (backId != -1) {
+                cameraId = backId;
+            } else if (isFrontCameraCanUse) {
+                cameraId = frontId;
             }
         } else {
-            if (frontId != -1)
-                camera = Camera.open(frontId);
-            else if (isBackCameraCanUse) {
-                camera = Camera.open(backId);
+            if (frontId != -1) {
+                cameraId = frontId;
+            } else if (isBackCameraCanUse) {
+                cameraId = backId;
             }
         }
+        camera = Camera.open(cameraId);
+
         if (camera == null) {
             if (onVideoRecordListener != null)
                 onVideoRecordListener.onRecordVideoError(ERROR_OPEN_CAMERA, "摄像头打开失败");
@@ -197,9 +208,18 @@ public class VideoRecordTool {
         mediaRecorder.setCamera(camera);//设置camera
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);//音频输入源
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);//视频输入源
-        mediaRecorder.setProfile(camcorderProfile == null ?//设置质量 默认720p
-                camcorderProfile = CamcorderProfile.get(CamcorderProfile.QUALITY_720P) :
-                camcorderProfile);
+        Log.i(TAG, "initMediaRecord: " + new Camera.CameraInfo().facing);
+        if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
+            mediaRecorder.setProfile(camcorderProfile == null ?//设置质量 默认720p
+                    camcorderProfile = CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P) :
+                    camcorderProfile);
+        } else {
+            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+            mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        }
+
+
         mediaRecorder.setPreviewDisplay(mHolder.getSurface());
         mediaRecorder.setOutputFile(filePath);
         if (angle != 0) {
@@ -232,15 +252,23 @@ public class VideoRecordTool {
     public void start() {
         if (!isRecording) {
             if (isRecording = initMediaRecord()) {
-                mediaRecorder.start();
-                if (handler == null) handler = getHandler();
-                currentTime = 0;
-                handler.removeMessages(0);
-                handler.sendEmptyMessageDelayed(0, 0);
-                if (onVideoRecordListener != null) onVideoRecordListener.onRecordVideoStart();
+                try {
+                    mediaRecorder.start();
+                    if (handler == null) handler = getHandler();
+                    currentTime = 0;
+                    handler.removeMessages(0);
+                    handler.sendEmptyMessageDelayed(0, 0);
+                    if (onVideoRecordListener != null) onVideoRecordListener.onRecordVideoStart();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    if (onVideoRecordListener != null) {
+                        onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_START, "视频录制开始失败");
+                    }
+                }
+
             } else {
                 if (onVideoRecordListener != null) {
-                    onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_PREPARE, "mediaRecorder prepare error");
+                    onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_PREPARE, "视频录制准备失败");
                 }
             }
         } else {
@@ -267,14 +295,21 @@ public class VideoRecordTool {
     private void stop(boolean pause) {
         Log.i(TAG, "stop: ");
         if (mediaRecorder != null) {
-            mediaRecorder.stop();
-            releaseMediaRecorder();
-            if (onVideoRecordListener != null)
-                onVideoRecordListener.onRecordVideoEnd(filePath, pause);
-            handler.removeMessages(0);
+            if (isRecording) {
+                mediaRecorder.stop();
+                releaseMediaRecorder();
+                if (onVideoRecordListener != null)
+                    onVideoRecordListener.onRecordVideoEnd(filePath, pause);
+                handler.removeMessages(0);
+            } else {
+                if (onVideoRecordListener != null)
+                    onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_NO_RECORDING, "停止失败,未开始录制");
+
+            }
+
         } else {
             if (onVideoRecordListener != null)
-                onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化mediaRecorder");
+                onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化视频录制器");
         }
         isRecording = false;
         currentTime = 0;
@@ -349,12 +384,16 @@ public class VideoRecordTool {
 
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
-            holder.removeCallback(holderCallBack);
             Log.i(TAG, "surfaceDestroyed: ");
-            camera.setPreviewCallback(null);
-            camera.stopPreview();
-            camera.release();
-            camera = null;
+            holder.removeCallback(holderCallBack);
+            if (camera != null) {
+                camera.setPreviewCallback(null);
+                camera.stopPreview();
+                camera.release();
+                camera = null;
+            }
+
+
         }
 
     }

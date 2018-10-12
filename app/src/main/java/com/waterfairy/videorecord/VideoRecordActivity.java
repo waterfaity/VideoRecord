@@ -188,6 +188,12 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             }
             mActivityState = STATE_RESUME;
         }
+//        if (mVideoRecordTool != null) {
+//            if (!mVideoRecordTool.isBackCameraCanUse() || mVideoRecordTool.isFrontCameraCanUse()) {
+//                //单摄像头
+//                mIVChangeCamera.setVisibility(View.GONE);
+//            }
+//        }
     }
 
     private void resetView() {
