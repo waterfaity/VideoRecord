@@ -215,8 +215,6 @@ public class VideoRecordTool {
             mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         }
-
-
         mediaRecorder.setPreviewDisplay(mHolder.getSurface());
         mediaRecorder.setOutputFile(filePath);
         if (angle != 0) {
