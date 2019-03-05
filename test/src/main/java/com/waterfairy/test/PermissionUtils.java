@@ -44,8 +44,14 @@ public class PermissionUtils {
      * 手机状态
      */
     public final static int REQUEST_PHONE_STATE = 5;
+    /**
+     * 手机状态
+     */
+    public final static int REQUEST_INSTALL_APK = 6;
+
 
     private static OnRequestPermissionListener onRequestPermissionListener;//权限请求监听
+    private static OnRequestPermissionListListener onRequestPermissionListListener;//权限list请求监听
 
     /**
      * 申请权限
@@ -61,7 +67,7 @@ public class PermissionUtils {
             String permission = null;
             switch (requestCode) {
                 case REQUEST_LOCATION:
-                    permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION};
+                    permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
                     permission = Manifest.permission.ACCESS_COARSE_LOCATION;
                     break;
                 case REQUEST_CAMERA:
@@ -80,6 +86,10 @@ public class PermissionUtils {
                 case REQUEST_PHONE_STATE:
                     permissions = new String[]{Manifest.permission.READ_PHONE_STATE};
                     permission = Manifest.permission.READ_PHONE_STATE;
+                    break;
+                case REQUEST_INSTALL_APK:
+                    permissions = new String[]{Manifest.permission.REQUEST_INSTALL_PACKAGES};
+                    permission = Manifest.permission.REQUEST_INSTALL_PACKAGES;
                     break;
             }
 
@@ -172,14 +182,15 @@ public class PermissionUtils {
         onRequestPermissionListener = listener;
     }
 
+
     /**
      * @param activity
      * @param requestCodes
      * @return
      * @throws Exception
      */
-    public static boolean requestPermissions(Activity activity, int[] requestCodes) throws Exception {
-        if (requestCodes == null) throw new Exception("没有请求权限");
+    public static boolean requestPermissions(Activity activity, int[] requestCodes) {
+        if (activity == null || requestCodes == null) return false;
         if (requestHashMap == null) requestHashMap = new HashMap<>();
         for (int requestCode : requestCodes) {
             boolean hasPermission = requestPermission(activity, requestCode);
@@ -197,7 +208,7 @@ public class PermissionUtils {
      * @param grantResults
      * @return
      */
-    public static void onRequestPermissionsResult(int requestCode, String resultPermissions[], int grantResults[]) throws Exception {
+    public static void onRequestPermissionsResult(int requestCode, String resultPermissions[], int grantResults[]) {
         if (resultPermissions.length > 0) {
             for (int i = 0; i < resultPermissions.length; i++) {
                 if (TextUtils.equals(resultPermissions[i], requestPermissionHashMap.get(requestCode))) {
@@ -218,8 +229,8 @@ public class PermissionUtils {
      * @return
      * @throws Exception
      */
-    public static boolean checkAllPermission() throws Exception {
-        if (requestHashMap == null) throw new Exception("没有请求权限");
+    public static boolean checkAllPermission() {
+        if (requestHashMap == null) return false;
         Set<Integer> integers = requestHashMap.keySet();
         for (Integer next : integers) {
             Boolean aBoolean = requestHashMap.get(next);
@@ -239,4 +250,54 @@ public class PermissionUtils {
          */
         void onRequestPermission(int requestCode, boolean state);
     }
+
+
+    /*---------------------------------权限集合------------------------------------------------*/
+
+
+    /**
+     * 请求加入的权限集合
+     * new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}
+     *
+     * @param activity
+     * @param permission
+     * @param requestCode
+     * @see Manifest.permission.ACCESS_COARSE_LOCATION 定位1(注:蓝牙会需要该权限)
+     * @see Manifest.permission.ACCESS_FINE_LOCATION 定位2
+     * @see Manifest.permission.CAMERA 拍照
+     * @see Manifest.permission.READ_EXTERNAL_STORAGE 存储读
+     * @see Manifest.permission.WRITE_EXTERNAL_STORAGE 存储写
+     * @see Manifest.permission.RECORD_AUDIO 录音
+     */
+    public static void requestPermissionList(Activity activity, String[] permission, int requestCode) {
+        ActivityCompat.requestPermissions(activity, permission, requestCode);
+
+    }
+
+    public static void onRequestPermissionListResult(int requestCode, String resultPermissions[], int grantResults[]) {
+        if (onRequestPermissionListListener != null) {
+            if (resultPermissions != null) {
+                for (int i = 0; i < resultPermissions.length; i++) {
+                    onRequestPermissionListListener.onRequestPermission(resultPermissions[i], grantResults[i]);
+                }
+            }
+        }
+    }
+
+    public static void setRequestPermissionListListener(OnRequestPermissionListListener listener) {
+        onRequestPermissionListListener = listener;
+    }
+
+
+    public interface OnRequestPermissionListListener {
+        /**
+         * 所有的权限请求结果
+         *
+         * @param permission
+         * @param state
+         */
+        void onRequestPermission(String permission, int state);
+    }
+
+    /*---------------------------------权限集合------------------------------------------------*/
 }

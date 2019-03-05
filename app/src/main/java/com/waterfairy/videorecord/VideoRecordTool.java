@@ -36,7 +36,7 @@ public class VideoRecordTool {
     //相机
     private Camera camera;
     private Camera.Parameters mParameters;
-    private CamcorderProfile camcorderProfile;
+    private int camcorderProfile = -1;
     //surfaceView
     private SurfaceView surfaceView;
     private SurfaceHolder mHolder;
@@ -57,6 +57,8 @@ public class VideoRecordTool {
     private boolean isFrontCameraCanUse = false;
     private boolean isBackCameraCanUse = false;
     private int cameraId = 0;
+    private int videoWidth;
+    private int videoHeight;
 
 
     public VideoRecordTool() {
@@ -108,7 +110,7 @@ public class VideoRecordTool {
 
 
     public void initCamcorderProfile(int camcorderProfile) {
-        this.camcorderProfile = CamcorderProfile.get(camcorderProfile);
+        this.camcorderProfile = camcorderProfile;
     }
 
     /**
@@ -206,10 +208,10 @@ public class VideoRecordTool {
         mediaRecorder.setCamera(camera);//设置camera
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);//音频输入源
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);//视频输入源
-        if (CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P)) {
-            mediaRecorder.setProfile(camcorderProfile == null ?//设置质量 默认720p
-                    camcorderProfile = CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_720P) :
-                    camcorderProfile);
+
+        if (camcorderProfile != -1 && CamcorderProfile.hasProfile(cameraId, camcorderProfile)) {
+            //有设置质量
+            mediaRecorder.setProfile(CamcorderProfile.get(camcorderProfile));
         } else {
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
@@ -355,6 +357,15 @@ public class VideoRecordTool {
      */
     public void setAngle(int angle) {
         this.angle = angle;
+    }
+
+    public void initVideoWidth(int videoWidth) {
+        this.videoWidth = videoWidth;
+    }
+
+    public void initVideoHeight(int videoHeight) {
+        this.videoHeight = videoHeight;
+
     }
 
     /**

@@ -77,9 +77,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
      */
     public static final int QUALITY_2160P = 8;
 
-    private int mQuality = QUALITY_720P;
 
-    private String mVideoPath;
     //activity 状态
     private int mActivityState;
     private static final int STATE_RESUME = 1;
@@ -87,14 +85,24 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     //intent_str
     public static final String STR_QUALITY = "record_video_quality";
-    public static final String STR_VIDEO_PATH = "record_video_path";
+    public static final String STR_VIDEO_WIDTH = "video_width";
+    public static final String STR_VIDEO_HEIGHT = "video_height";
+    public static final String STR_VIDEO_PATH = "record_video_path";//绝对路径
+    public static final String STR_VIDEO_SAVE_PATH = "record_video_cache_path";//文件夹
     public static final String STR_VIDEO_DURATION = "record_video_duration";
     public static final String STR_FOR_RESULT = "result_str";
     public static final String RESULT_STR_VIDEO_PATH = "videoPath";
+
     private boolean canFinish;
-    private int mDuration = 60;
-    private String mStrResult;
     private View mIVChangeCamera;//前置后置摄像头切换
+    //视频参数
+    private int mVideoWidth;//视频宽
+    private int mVideoHeight;//视频高
+    private int mDuration = 60;
+    private String mStrResult;//返回的字段
+    private int mQuality = -1;//质量
+    private String mVideoPath;//视频路径
+    private String mVideoCachePath;//视频文件夹
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,10 +117,13 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     private void getExtra() {
         Intent intent = getIntent();
-        mQuality = intent.getIntExtra(STR_QUALITY, QUALITY_720P);
         mVideoPath = intent.getStringExtra(STR_VIDEO_PATH);
         mDuration = intent.getIntExtra(STR_VIDEO_DURATION, 60);
+        mVideoCachePath = intent.getStringExtra(STR_VIDEO_SAVE_PATH);
         mStrResult = intent.getStringExtra(STR_FOR_RESULT);
+        mVideoWidth = intent.getIntExtra(STR_VIDEO_WIDTH, 0);
+        mVideoHeight = intent.getIntExtra(STR_VIDEO_HEIGHT, 0);
+        mQuality = intent.getIntExtra(STR_QUALITY, (mVideoHeight == 0 || mVideoWidth == 0) ? QUALITY_720P : -1);
     }
 
     private void findView() {
@@ -132,6 +143,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         mVideoRecordTool = VideoRecordTool.getInstance();
         mVideoRecordTool.setOnVideoRecordListener(this);
         mVideoRecordTool.initCamcorderProfile(mQuality);
+        mVideoRecordTool.initVideoWidth(mVideoWidth);
+        mVideoRecordTool.initVideoHeight(mVideoHeight);
         mVideoRecordTool.setMaxLenTime(mDuration);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             mVideoRecordTool.setAngle(90);
@@ -153,7 +166,10 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private boolean createFile() {
         File file = null;
         if (TextUtils.isEmpty(mVideoPath)) {
-            file = new File(getExternalCacheDir(), new Date().getTime() + ".mp4");
+            if (TextUtils.isEmpty(mVideoCachePath)) {
+                mVideoCachePath = getExternalCacheDir().getAbsolutePath();
+            }
+            file = new File(mVideoCachePath, MD5Utils.getMD5Code(new Date().getTime() + "") + ".mp4");
             mVideoPath = file.getAbsolutePath();
         } else {
             file = new File(mVideoPath);
