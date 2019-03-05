@@ -5,12 +5,14 @@ import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.Message;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 
 
 /**
@@ -73,13 +75,14 @@ public class VideoRecordTool {
     }
 
     public VideoRecordTool initViewAndPath(SurfaceView surfaceView, String videoPath) {
-        if (!new File(filePath = videoPath).exists()) {
-            if (onVideoRecordListener != null) {
-                onVideoRecordListener.onRecordVideoError(ERROR_FILE_NOT_EXIST, "文件不存在");
-            }
-        } else {
-            this.surfaceView = surfaceView;
-        }
+        filePath=videoPath;
+//        if (!new File(filePath = videoPath).exists()) {
+//            if (onVideoRecordListener != null) {
+//                onVideoRecordListener.onRecordVideoError(ERROR_FILE_NOT_EXIST, "文件不存在");
+//            }
+//        } else {
+        this.surfaceView = surfaceView;
+//        }
         return this;
     }
 
@@ -249,21 +252,23 @@ public class VideoRecordTool {
     public void start() {
         if (!isRecording) {
             if (initMediaRecord()) {
-                try {
-                    mediaRecorder.start();
-                    if (handler == null) handler = getHandler();
-                    currentTime = 0;
-                    handler.removeMessages(0);
-                    handler.sendEmptyMessageDelayed(0, 0);
-                    if (onVideoRecordListener != null) onVideoRecordListener.onRecordVideoStart();
-                    isRecording = true;
-                } catch (Exception e) {
-                    isRecording = false;
-                    e.printStackTrace();
-                    if (onVideoRecordListener != null) {
-                        onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_START, "视频录制开始失败");
+                //创建文件
+                    try {
+                        mediaRecorder.start();
+                        if (handler == null) handler = getHandler();
+                        currentTime = 0;
+                        handler.removeMessages(0);
+                        handler.sendEmptyMessageDelayed(0, 0);
+                        if (onVideoRecordListener != null)
+                            onVideoRecordListener.onRecordVideoStart();
+                        isRecording = true;
+                    } catch (Exception e) {
+                        isRecording = false;
+                        e.printStackTrace();
+                        if (onVideoRecordListener != null) {
+                            onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_START, "视频录制开始失败");
+                        }
                     }
-                }
             } else {
                 if (onVideoRecordListener != null) {
                     onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_PREPARE, "视频录制准备失败");
@@ -273,6 +278,33 @@ public class VideoRecordTool {
             if (onVideoRecordListener != null)
                 onVideoRecordListener.onRecordVideoWarm(WARM_IS_RECORDING, "录制中");
         }
+    }
+
+    /**
+     * 创建文件
+     *
+     * @return
+     */
+    private boolean createFile() {
+        return  true;
+//        File file = new File(filePath);
+//        boolean canSave = false;
+//        if (!file.exists()) {
+//            try {
+//                File parent = file.getParentFile();
+//                canSave = parent.exists() || parent.mkdirs();
+//                if (canSave) {
+//                    canSave = file.createNewFile();
+//
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                canSave = false;
+//            }
+//        } else {
+//            canSave = true;
+//        }
+//        return canSave;
     }
 
     /**
@@ -308,6 +340,7 @@ public class VideoRecordTool {
             if (onVideoRecordListener != null)
                 onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化视频录制器");
         }
+        handler.removeMessages(0);
         isRecording = false;
         currentTime = 0;
     }
@@ -316,10 +349,9 @@ public class VideoRecordTool {
         return new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                if (currentTime >=maxLen ) {
+                if (currentTime >= maxLen) {
                     //录制结束
                     stop();
-
                 } else {
                     if (onVideoRecordListener != null)
                         onVideoRecordListener.onRecordingVideo(currentTime);

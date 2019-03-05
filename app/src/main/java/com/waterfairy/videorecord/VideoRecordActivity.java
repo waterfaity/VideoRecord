@@ -15,7 +15,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -85,13 +84,13 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     //intent_str
     public static final String STR_QUALITY = "record_video_quality";
-    public static final String STR_VIDEO_WIDTH = "video_width";
-    public static final String STR_VIDEO_HEIGHT = "video_height";
+    public static final String STR_VIDEO_WIDTH = "record_video_width";
+    public static final String STR_VIDEO_HEIGHT = "record_video_height";
     public static final String STR_VIDEO_PATH = "record_video_path";//绝对路径
     public static final String STR_VIDEO_SAVE_PATH = "record_video_cache_path";//文件夹
     public static final String STR_VIDEO_DURATION = "record_video_duration";
     public static final String STR_FOR_RESULT = "result_str";
-    public static final String RESULT_STR_VIDEO_PATH = "videoPath";
+    public static final String RESULT_STR_VIDEO_PATH = "data";
 
     private boolean canFinish;
     private View mIVChangeCamera;//前置后置摄像头切换
@@ -150,49 +149,26 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             mVideoRecordTool.setAngle(90);
         }
-        boolean success = createFile();
-        if (success) {
-            mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
-            mVideoRecordTool.init();
-        } else {
-            Toast.makeText(this, "文件创建失败,请检查是否有SD卡读取权限", Toast.LENGTH_SHORT).show();
-        }
+        initFilePath();
+        mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
+        mVideoRecordTool.init();
+
     }
 
     /**
-     * 创建文件
+     * 初始化文件路径
      *
      * @return
      */
-    private boolean createFile() {
-        File file = null;
+    private void initFilePath() {
         if (TextUtils.isEmpty(mVideoPath)) {
             if (TextUtils.isEmpty(mVideoCachePath)) {
                 mVideoCachePath = getExternalCacheDir().getAbsolutePath();
             }
-            file = new File(mVideoCachePath, MD5Utils.getMD5Code(new Date().getTime() + "") + ".mp4");
+            File file = new File(mVideoCachePath, MD5Utils.getMD5Code(new Date().getTime() + "") + ".mp4");
             mVideoPath = file.getAbsolutePath();
-        } else {
-            file = new File(mVideoPath);
         }
-        boolean canSave = false;
-        if (!file.exists()) {
-            File parent = file.getParentFile();
-            canSave = parent.exists() || parent.mkdirs();
-            if (canSave) {
-                try {
-                    canSave = file.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    canSave = false;
-                }
-            }
-        } else {
-            canSave = true;
-        }
-        return canSave;
     }
-
 
     @Override
     protected void onResume() {
@@ -221,13 +197,11 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         setContentView(R.layout.activity_video_record);
         findView();
         initView();
-        boolean success = createFile();
-        if (success) {
-            mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
-            mVideoRecordTool.init(isBackCamera);
-        } else {
-            Toast.makeText(this, "文件创建失败,请检查是否有SD卡读取权限", Toast.LENGTH_SHORT).show();
-        }
+        initFilePath();
+
+        mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
+        mVideoRecordTool.init(isBackCamera);
+
     }
 
     @Override
