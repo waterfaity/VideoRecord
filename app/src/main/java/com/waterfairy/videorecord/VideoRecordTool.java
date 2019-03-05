@@ -316,7 +316,7 @@ public class VideoRecordTool {
         return new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                if (currentTime >= 60) {
+                if (currentTime >=maxLen ) {
                     //录制结束
                     stop();
 

@@ -119,6 +119,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         Intent intent = getIntent();
         mVideoPath = intent.getStringExtra(STR_VIDEO_PATH);
         mDuration = intent.getIntExtra(STR_VIDEO_DURATION, 60);
+        if (mDuration <= 0) mDuration = 60;
         mVideoCachePath = intent.getStringExtra(STR_VIDEO_SAVE_PATH);
         mStrResult = intent.getStringExtra(STR_FOR_RESULT);
         mVideoWidth = intent.getIntExtra(STR_VIDEO_WIDTH, 0);

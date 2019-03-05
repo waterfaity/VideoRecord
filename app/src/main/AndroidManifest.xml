@@ -2,19 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.waterfairy.videorecord">
 
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <application>
         <activity
             android:name=".VideoRecordActivity"
-            android:screenOrientation="landscape"
+            android:screenOrientation="behind"
             android:theme="@style/FullScreen">
         </activity>
-        <activity
-            android:name=".VideoRecordPortActivity"
-            android:screenOrientation="portrait"
-            android:theme="@style/FullScreen">
-        </activity>
-
-
     </application>
 
 </manifest>
