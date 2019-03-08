@@ -2,11 +2,13 @@ package com.waterfairy.videorecord;
 
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.hardware.SensorManager;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.OrientationEventListener;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.CheckBox;
@@ -102,6 +104,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private int mQuality = -1;//质量
     private String mVideoPath;//视频路径
     private String mVideoCachePath;//视频文件夹
+    private OrientationEventListener orientationEventListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,6 +155,15 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         initFilePath();
         mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
         mVideoRecordTool.init();
+
+
+        orientationEventListener = new OrientationEventListener(this,SensorManager.SENSOR_DELAY_NORMAL) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                Log.i(TAG, "onOrientationChanged: "+orientation);
+            }
+        };
+        orientationEventListener.enable();
 
     }
 
@@ -216,7 +228,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     protected void onDestroy() {
         super.onDestroy();
         mVideoRecordTool.onDestroy();
-
+        orientationEventListener.disable();
         mStrResult = null;
         mVideoRecordTool = null;
         mTVTime = null;
@@ -272,10 +284,6 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
 
     @Override
     public void onClick(View v) {
@@ -288,4 +296,5 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             }
         }
     }
+
 }

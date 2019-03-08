@@ -173,6 +173,17 @@ public class VideoRecordTool {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+        //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
+        camera.setPreviewCallback(new Camera.PreviewCallback() {
+            @Override
+            public void onPreviewFrame(byte[] data, Camera camera) {
+//                Log.i(TAG, "获取预览帧...");
+//                new ProcessFrameAsyncTask(new File(filePath).getParent()).execute(data);
+//                Log.d(TAG, "预览帧大小：" + String.valueOf(data.length));
+            }
+        });
         //自动对焦
         try {
             mParameters = camera.getParameters();
@@ -190,15 +201,6 @@ public class VideoRecordTool {
             e.printStackTrace();
         }
 
-        //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
-        camera.setPreviewCallback(new Camera.PreviewCallback() {
-            @Override
-            public void onPreviewFrame(byte[] data, Camera camera) {
-//                Log.i(TAG, "获取预览帧...");
-//                new ProcessFrameAsyncTask(new File(filePath).getParent()).execute(data);
-//                Log.d(TAG, "预览帧大小：" + String.valueOf(data.length));
-            }
-        });
     }
 
     /**
