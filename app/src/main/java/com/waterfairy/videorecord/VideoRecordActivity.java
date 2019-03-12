@@ -1,18 +1,18 @@
 package com.waterfairy.videorecord;
 
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.hardware.SensorManager;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.OrientationEventListener;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +26,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private SurfaceView mSurfaceView;
     private CheckBox mBTRecord;
     private VideoRecordTool mVideoRecordTool;
+    private RelativeLayout mRLTime;
 
 
     /**
@@ -97,19 +98,19 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private boolean canFinish;
     private View mIVChangeCamera;//前置后置摄像头切换
     //视频参数
-    private int mVideoWidth;//视频宽
-    private int mVideoHeight;//视频高
     private int mDuration = 60;
     private String mStrResult;//返回的字段
     private int mQuality = -1;//质量
     private String mVideoPath;//视频路径
     private String mVideoCachePath;//视频文件夹
-    private OrientationEventListener orientationEventListener;
+    private ScreenOrientationTool screenOrientationTool;
+    private int currentOrientation = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_record);
+
         getExtra();
         findView();
         initData();
@@ -124,30 +125,66 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         if (mDuration <= 0) mDuration = 60;
         mVideoCachePath = intent.getStringExtra(STR_VIDEO_SAVE_PATH);
         mStrResult = intent.getStringExtra(STR_FOR_RESULT);
-        mVideoWidth = intent.getIntExtra(STR_VIDEO_WIDTH, 0);
-        mVideoHeight = intent.getIntExtra(STR_VIDEO_HEIGHT, 0);
-        mQuality = intent.getIntExtra(STR_QUALITY, (mVideoHeight == 0 || mVideoWidth == 0) ? QUALITY_720P : -1);
+        mQuality = intent.getIntExtra(STR_QUALITY, -1);
     }
 
     private void findView() {
         mBTRecord = findViewById(R.id.tb_record);
         mTVTime = findViewById(R.id.time);
+        mRLTime = findViewById(R.id.rel_time);
         mSurfaceView = findViewById(R.id.surface_view);
         mIVChangeCamera = findViewById(R.id.chang_camera);
     }
 
     private void initView() {
+
+//        hideBottom();
         mBTRecord.setOnCheckedChangeListener(this);
         mIVChangeCamera.setOnClickListener(this);
+        mRLTime.setRotation(currentOrientation);
+        mIVChangeCamera.setRotation(currentOrientation);
 
+    }
+
+    private void hideBottom() {
+        View decorView = getWindow().getDecorView();
+        // Hide both the navigation bar and the status bar.
+        // SYSTEM_UI_FLAG_FULLSCREEN is only available on Android 4.1 and higher, but as
+        // a general rule, you should design your app to hide the status bar whenever you
+        // hide the navigation bar.
+        int uiOptions = 0;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+            uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN;
+        }
+        decorView.setSystemUiVisibility(uiOptions);
+    }
+
+    public boolean isScreenPortrait() {
+        int or = getRequestedOrientation();
+        switch (or) {
+            case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:// 横屏
+            case ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:
+                return false;
+            case ActivityInfo.SCREEN_ORIENTATION_PORTRAIT:// 竖屏
+            case ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:
+                return true;
+            default:
+                return true;
+        }
     }
 
     private void initData() {
         mVideoRecordTool = VideoRecordTool.getInstance();
         mVideoRecordTool.setOnVideoRecordListener(this);
         mVideoRecordTool.initCamcorderProfile(mQuality);
-        mVideoRecordTool.initVideoWidth(mVideoWidth);
-        mVideoRecordTool.initVideoHeight(mVideoHeight);
+        int width = 0, height = 0;
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        //竖屏
+        width = displayMetrics.widthPixels;
+        height = displayMetrics.heightPixels;
+        mVideoRecordTool.initViewWidth(width);
+        mVideoRecordTool.initViewHeight(height);
         mVideoRecordTool.setMaxLenTime(mDuration);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             mVideoRecordTool.setAngle(90);
@@ -155,17 +192,18 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         initFilePath();
         mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
         mVideoRecordTool.init();
-
-
-        orientationEventListener = new OrientationEventListener(this,SensorManager.SENSOR_DELAY_NORMAL) {
+        screenOrientationTool = new ScreenOrientationTool().init(this, new ScreenOrientationTool.OnOrientationChangeListener() {
             @Override
             public void onOrientationChanged(int orientation) {
-                Log.i(TAG, "onOrientationChanged: "+orientation);
+                if (mVideoRecordTool.onOrientationChanged(orientation)) {
+                    currentOrientation = 360 - orientation;
+                    mRLTime.setRotation(currentOrientation);
+                    mIVChangeCamera.setRotation(currentOrientation);
+                }
             }
-        };
-        orientationEventListener.enable();
-
+        });
     }
+
 
     /**
      * 初始化文件路径
@@ -213,7 +251,6 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
         mVideoRecordTool.initViewAndPath(mSurfaceView, mVideoPath);
         mVideoRecordTool.init(isBackCamera);
-
     }
 
     @Override
@@ -228,7 +265,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     protected void onDestroy() {
         super.onDestroy();
         mVideoRecordTool.onDestroy();
-        orientationEventListener.disable();
+        screenOrientationTool.onDestroy();
         mStrResult = null;
         mVideoRecordTool = null;
         mTVTime = null;
@@ -274,6 +311,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             canFinish = true;
         }
     }
+
 
     @Override
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {

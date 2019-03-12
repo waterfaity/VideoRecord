@@ -3,16 +3,14 @@ package com.waterfairy.videorecord;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Date;
 
 
 /**
@@ -53,7 +51,7 @@ public class VideoRecordTool {
     private String filePath;
     private boolean isRecording;
     private int currentTime = 0;
-    private int angle;//camera angle
+    private int angle = -1;//camera angle
     private int maxLen = 60;//max len  time   default 60s
     private boolean isBackCamera = true;
     private boolean isFrontCameraCanUse = false;
@@ -61,6 +59,8 @@ public class VideoRecordTool {
     private int cameraId = 0;
     private int videoWidth;
     private int videoHeight;
+    private Camera.Size[] videoSizes;
+    private int orientation;
 
 
     public VideoRecordTool() {
@@ -75,7 +75,7 @@ public class VideoRecordTool {
     }
 
     public VideoRecordTool initViewAndPath(SurfaceView surfaceView, String videoPath) {
-        filePath=videoPath;
+        filePath = videoPath;
 //        if (!new File(filePath = videoPath).exists()) {
 //            if (onVideoRecordListener != null) {
 //                onVideoRecordListener.onRecordVideoError(ERROR_FILE_NOT_EXIST, "文件不存在");
@@ -147,12 +147,14 @@ public class VideoRecordTool {
             }
         }
         if (isBackCamera) {
+            //后置摄像头
             if (backId != -1) {
                 cameraId = backId;
             } else if (isFrontCameraCanUse) {
                 cameraId = frontId;
             }
         } else {
+            //前置
             if (frontId != -1) {
                 cameraId = frontId;
             } else if (isBackCameraCanUse) {
@@ -175,33 +177,63 @@ public class VideoRecordTool {
         }
 
 
-        //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
-        camera.setPreviewCallback(new Camera.PreviewCallback() {
-            @Override
-            public void onPreviewFrame(byte[] data, Camera camera) {
-//                Log.i(TAG, "获取预览帧...");
-//                new ProcessFrameAsyncTask(new File(filePath).getParent()).execute(data);
-//                Log.d(TAG, "预览帧大小：" + String.valueOf(data.length));
-            }
-        });
-        //自动对焦
+//        //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
+//        camera.setPreviewCallback(new Camera.PreviewCallback() {
+//            @Override
+//            public void onPreviewFrame(byte[] data, Camera camera) {
+////                Log.i(TAG, "获取预览帧...");
+////                new ProcessFrameAsyncTask(new File(filePath).getParent()).execute(data);
+////                Log.d(TAG, "预览帧大小：" + String.valueOf(data.length));
+//            }
+//        });
+
+
+        //size
+//        videoSizes = VideoSizeTool.getVideoSize(videoWidth, videoHeight, camera.getParameters().getSupportedPreviewSizes(),
+//                camera.getParameters().getSupportedVideoSizes());
+//        if (videoSizes[1] != null) {
+//            camera.getParameters().setPreviewSize(videoSizes[1].width, videoSizes[1].height);
+//        }
+
+
+    }
+
+    /**
+     * 自动对焦
+     */
+    private void doAutoFocus() {
         try {
+
             mParameters = camera.getParameters();
-            mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+            mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            //前置摄像头 对焦???
             camera.setParameters(mParameters);
             camera.autoFocus(new Camera.AutoFocusCallback() {
                 @Override
                 public void onAutoFocus(boolean success, Camera camera) {
                     if (success) {
-//                    Log.d(TAG, "自动对焦成功");
+                        try {
+                            camera.cancelAutoFocus();// 只有加上了这一句，才会自动对焦。
+                            if (!Build.MODEL.equals("KORIDY H30")) {
+                                mParameters = camera.getParameters();
+                                mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);// 连续自动对焦
+                                camera.setParameters(mParameters);
+                            } else {
+                                mParameters = camera.getParameters();
+                                mParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                                camera.setParameters(mParameters);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             });
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
+
 
     /**
      * 3
@@ -211,6 +243,7 @@ public class VideoRecordTool {
         mediaRecorder.reset();
         camera.unlock();
         mediaRecorder.setCamera(camera);//设置camera
+
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);//音频输入源
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);//视频输入源
 
@@ -218,18 +251,24 @@ public class VideoRecordTool {
             //有设置质量
             mediaRecorder.setProfile(CamcorderProfile.get(camcorderProfile));
         } else {
+            //默认
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+            if (videoSizes != null && videoSizes[0] != null) {
+                mediaRecorder.setVideoSize(videoSizes[0].width, videoSizes[0].height);
+            }
         }
         mediaRecorder.setPreviewDisplay(mHolder.getSurface());
         mediaRecorder.setOutputFile(filePath);
-        if (angle != 0) {
-            if (isBackCamera)
-                mediaRecorder.setOrientationHint(angle);
-            else mediaRecorder.setOrientationHint(angle + 180);
-
+        if (angle != -1) {
+            if (isBackCamera) {
+                mediaRecorder.setOrientationHint((angle + orientation) % 360);
+            } else {
+                mediaRecorder.setOrientationHint((angle + orientation + 180) % 360);
+            }
         }
+        //准备
         try {
             mediaRecorder.prepare();
             return true;
@@ -255,22 +294,22 @@ public class VideoRecordTool {
         if (!isRecording) {
             if (initMediaRecord()) {
                 //创建文件
-                    try {
-                        mediaRecorder.start();
-                        if (handler == null) handler = getHandler();
-                        currentTime = 0;
-                        handler.removeMessages(0);
-                        handler.sendEmptyMessageDelayed(0, 0);
-                        if (onVideoRecordListener != null)
-                            onVideoRecordListener.onRecordVideoStart();
-                        isRecording = true;
-                    } catch (Exception e) {
-                        isRecording = false;
-                        e.printStackTrace();
-                        if (onVideoRecordListener != null) {
-                            onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_START, "视频录制开始失败");
-                        }
+                try {
+                    mediaRecorder.start();
+                    if (handler == null) handler = getHandler();
+                    currentTime = 0;
+                    handler.removeMessages(0);
+                    handler.sendEmptyMessageDelayed(0, 0);
+                    if (onVideoRecordListener != null)
+                        onVideoRecordListener.onRecordVideoStart();
+                    isRecording = true;
+                } catch (Exception e) {
+                    isRecording = false;
+                    e.printStackTrace();
+                    if (onVideoRecordListener != null) {
+                        onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_START, "视频录制开始失败");
                     }
+                }
             } else {
                 if (onVideoRecordListener != null) {
                     onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_PREPARE, "视频录制准备失败");
@@ -282,32 +321,6 @@ public class VideoRecordTool {
         }
     }
 
-    /**
-     * 创建文件
-     *
-     * @return
-     */
-    private boolean createFile() {
-        return  true;
-//        File file = new File(filePath);
-//        boolean canSave = false;
-//        if (!file.exists()) {
-//            try {
-//                File parent = file.getParentFile();
-//                canSave = parent.exists() || parent.mkdirs();
-//                if (canSave) {
-//                    canSave = file.createNewFile();
-//
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//                canSave = false;
-//            }
-//        } else {
-//            canSave = true;
-//        }
-//        return canSave;
-    }
 
     /**
      * 结束录制
@@ -342,7 +355,8 @@ public class VideoRecordTool {
             if (onVideoRecordListener != null)
                 onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化视频录制器");
         }
-        handler.removeMessages(0);
+        if (handler != null)
+            handler.removeMessages(0);
         isRecording = false;
         currentTime = 0;
     }
@@ -393,13 +407,26 @@ public class VideoRecordTool {
         this.angle = angle;
     }
 
-    public void initVideoWidth(int videoWidth) {
+    public void initViewWidth(int videoWidth) {
         this.videoWidth = videoWidth;
     }
 
-    public void initVideoHeight(int videoHeight) {
+    public void initViewHeight(int videoHeight) {
         this.videoHeight = videoHeight;
 
+    }
+
+    /**
+     * 屏幕方向改变
+     *
+     * @param orientation
+     */
+    public boolean onOrientationChanged(int orientation) {
+        if (camera != null && !isRecording) {
+            this.orientation = orientation;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -412,6 +439,7 @@ public class VideoRecordTool {
             try {
                 camera.setPreviewDisplay(holder);
                 camera.startPreview();
+                doAutoFocus();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -432,8 +460,6 @@ public class VideoRecordTool {
                 camera.release();
                 camera = null;
             }
-
-
         }
 
     }
