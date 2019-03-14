@@ -29,57 +29,6 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private RelativeLayout mRLTime;
 
 
-    /**
-     * Quality level corresponding to the lowest available resolution.
-     */
-    public static final int QUALITY_LOW = 0;
-
-    /**
-     * Quality level corresponding to the highest available resolution.
-     */
-    public static final int QUALITY_HIGH = 1;
-
-    /**
-     * Quality level corresponding to the qcif (176 x 144) resolution.
-     */
-    public static final int QUALITY_QCIF = 2;
-
-    /**
-     * Quality level corresponding to the cif (352 x 288) resolution.
-     */
-    public static final int QUALITY_CIF = 3;
-
-    /**
-     * Quality level corresponding to the 480p (720 x 480) resolution.
-     * Note that the horizontal resolution for 480p can also be other
-     * values, such as 640 or 704, instead of 720.
-     */
-    public static final int QUALITY_480P = 4;
-
-    /**
-     * Quality level corresponding to the 720p (1280 x 720) resolution.
-     */
-    public static final int QUALITY_720P = 5;
-
-    /**
-     * Quality level corresponding to the 1080p (1920 x 1080) resolution.
-     * Note that the vertical resolution for 1080p can also be 1088,
-     * instead of 1080 (used by some vendors to avoid cropping during
-     * video playback).
-     */
-    public static final int QUALITY_1080P = 6;
-
-    /**
-     * Quality level corresponding to the QVGA (320x240) resolution.
-     */
-    public static final int QUALITY_QVGA = 7;
-
-    /**
-     * Quality level corresponding to the 2160p (3840x2160) resolution.
-     */
-    public static final int QUALITY_2160P = 8;
-
-
     //activity 状态
     private int mActivityState;
     private static final int STATE_RESUME = 1;
@@ -87,8 +36,6 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     //intent_str
     public static final String STR_QUALITY = "record_video_quality";
-    public static final String STR_VIDEO_WIDTH = "record_video_width";
-    public static final String STR_VIDEO_HEIGHT = "record_video_height";
     public static final String STR_VIDEO_PATH = "record_video_path";//绝对路径
     public static final String STR_VIDEO_SAVE_PATH = "record_video_cache_path";//文件夹
     public static final String STR_VIDEO_DURATION = "record_video_duration";
@@ -100,7 +47,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     //视频参数
     private int mDuration = 60;
     private String mStrResult;//返回的字段
-    private int mQuality = -1;//质量
+    private float mQuality = 1.5F;//质量
     private String mVideoPath;//视频路径
     private String mVideoCachePath;//视频文件夹
     private ScreenOrientationTool screenOrientationTool;
@@ -125,7 +72,10 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         if (mDuration <= 0) mDuration = 60;
         mVideoCachePath = intent.getStringExtra(STR_VIDEO_SAVE_PATH);
         mStrResult = intent.getStringExtra(STR_FOR_RESULT);
-        mQuality = intent.getIntExtra(STR_QUALITY, -1);
+        mQuality = intent.getIntExtra(STR_QUALITY, 0);
+        if (mQuality == 0)
+            mQuality = intent.getFloatExtra(STR_QUALITY, 1.5F);
+
     }
 
     private void findView() {
@@ -137,55 +87,18 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     }
 
     private void initView() {
-
-//        hideBottom();
         mBTRecord.setOnCheckedChangeListener(this);
         mIVChangeCamera.setOnClickListener(this);
         mRLTime.setRotation(currentOrientation);
         mIVChangeCamera.setRotation(currentOrientation);
-
     }
 
-    private void hideBottom() {
-        View decorView = getWindow().getDecorView();
-        // Hide both the navigation bar and the status bar.
-        // SYSTEM_UI_FLAG_FULLSCREEN is only available on Android 4.1 and higher, but as
-        // a general rule, you should design your app to hide the status bar whenever you
-        // hide the navigation bar.
-        int uiOptions = 0;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
-            uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN;
-        }
-        decorView.setSystemUiVisibility(uiOptions);
-    }
-
-    public boolean isScreenPortrait() {
-        int or = getRequestedOrientation();
-        switch (or) {
-            case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:// 横屏
-            case ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:
-                return false;
-            case ActivityInfo.SCREEN_ORIENTATION_PORTRAIT:// 竖屏
-            case ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:
-                return true;
-            default:
-                return true;
-        }
-    }
 
     private void initData() {
         mVideoRecordTool = VideoRecordTool.getInstance();
         mVideoRecordTool.setOnVideoRecordListener(this);
-        mVideoRecordTool.initCamcorderProfile(mQuality);
-        int width = 0, height = 0;
-        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        //竖屏
-        width = displayMetrics.widthPixels;
-        height = displayMetrics.heightPixels;
-        mVideoRecordTool.initViewWidth(width);
-        mVideoRecordTool.initViewHeight(height);
         mVideoRecordTool.setMaxLenTime(mDuration);
+        mVideoRecordTool.setQuality(mQuality);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             mVideoRecordTool.setAngle(90);
         }
@@ -285,6 +198,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         mBTRecord.setOnCheckedChangeListener(null);
         mBTRecord.setChecked(false);
         mBTRecord.setOnCheckedChangeListener(this);
+        finish();
     }
 
     @Override

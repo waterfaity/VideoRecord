@@ -8,6 +8,7 @@
     <application>
         <activity
             android:name=".VideoRecordActivity"
+            android:screenOrientation="portrait"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:theme="@style/FullScreen">
         </activity>

@@ -36,7 +36,6 @@ public class VideoRecordTool {
     //相机
     private Camera camera;
     private Camera.Parameters mParameters;
-    private int camcorderProfile = -1;
     //surfaceView
     private SurfaceView surfaceView;
     private SurfaceHolder mHolder;
@@ -57,10 +56,10 @@ public class VideoRecordTool {
     private boolean isFrontCameraCanUse = false;
     private boolean isBackCameraCanUse = false;
     private int cameraId = 0;
-    private int videoWidth;
-    private int videoHeight;
-    private Camera.Size[] videoSizes;
+    private int videoWidth = 1280;
+    private int videoHeight = 720;
     private int orientation;
+    private float mQuality;//质量
 
 
     public VideoRecordTool() {
@@ -111,10 +110,6 @@ public class VideoRecordTool {
         return this;
     }
 
-
-    public void initCamcorderProfile(int camcorderProfile) {
-        this.camcorderProfile = camcorderProfile;
-    }
 
     /**
      * 1
@@ -175,27 +170,6 @@ public class VideoRecordTool {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-//        //下面这个方法能帮我们获取到相机预览帧，我们可以在这里实时地处理每一帧
-//        camera.setPreviewCallback(new Camera.PreviewCallback() {
-//            @Override
-//            public void onPreviewFrame(byte[] data, Camera camera) {
-////                Log.i(TAG, "获取预览帧...");
-////                new ProcessFrameAsyncTask(new File(filePath).getParent()).execute(data);
-////                Log.d(TAG, "预览帧大小：" + String.valueOf(data.length));
-//            }
-//        });
-
-
-        //size
-//        videoSizes = VideoSizeTool.getVideoSize(videoWidth, videoHeight, camera.getParameters().getSupportedPreviewSizes(),
-//                camera.getParameters().getSupportedVideoSizes());
-//        if (videoSizes[1] != null) {
-//            camera.getParameters().setPreviewSize(videoSizes[1].width, videoSizes[1].height);
-//        }
-
-
     }
 
     /**
@@ -241,26 +215,22 @@ public class VideoRecordTool {
     private boolean initMediaRecord() {
         mediaRecorder = new MediaRecorder();
         mediaRecorder.reset();
-        camera.unlock();
         mediaRecorder.setCamera(camera);//设置camera
 
-        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);//音频输入源
-        mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);//视频输入源
+        //这两项需要放在setOutputFormat之前
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+        mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+        // Set output file format，输出格式
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        //必须在setEncoder之前
+        mediaRecorder.setVideoFrameRate(30);  //帧数  一分钟帧，15帧就够了
+        mediaRecorder.setVideoSize(videoWidth, videoHeight);
 
-        if (camcorderProfile != -1 && CamcorderProfile.hasProfile(cameraId, camcorderProfile)) {
-            //有设置质量
-            mediaRecorder.setProfile(CamcorderProfile.get(camcorderProfile));
-        } else {
-            //默认
-            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
-            mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            if (videoSizes != null && videoSizes[0] != null) {
-                mediaRecorder.setVideoSize(videoSizes[0].width, videoSizes[0].height);
-            }
-        }
-        mediaRecorder.setPreviewDisplay(mHolder.getSurface());
-        mediaRecorder.setOutputFile(filePath);
+        // 这两项需要放在setOutputFormat之后
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        //设置所录制视频的编码位率。
+        mediaRecorder.setVideoEncodingBitRate((int) (mQuality * videoWidth * videoHeight));//第一个数字越大，清晰度就越高，考虑文件大小的缘故，就调整为1
         if (angle != -1) {
             if (isBackCamera) {
                 mediaRecorder.setOrientationHint((angle + orientation) % 360);
@@ -268,6 +238,8 @@ public class VideoRecordTool {
                 mediaRecorder.setOrientationHint((angle + orientation + 180) % 360);
             }
         }
+        mediaRecorder.setPreviewDisplay(mHolder.getSurface());
+        mediaRecorder.setOutputFile(filePath);
         //准备
         try {
             mediaRecorder.prepare();
@@ -293,8 +265,8 @@ public class VideoRecordTool {
     public void start() {
         if (!isRecording) {
             if (initMediaRecord()) {
-                //创建文件
                 try {
+                    camera.unlock();
                     mediaRecorder.start();
                     if (handler == null) handler = getHandler();
                     currentTime = 0;
@@ -365,12 +337,12 @@ public class VideoRecordTool {
         return new Handler() {
             @Override
             public void handleMessage(Message msg) {
+                if (onVideoRecordListener != null)
+                    onVideoRecordListener.onRecordingVideo(currentTime);
                 if (currentTime >= maxLen) {
                     //录制结束
                     stop();
                 } else {
-                    if (onVideoRecordListener != null)
-                        onVideoRecordListener.onRecordingVideo(currentTime);
                     currentTime++;
                     handler.sendEmptyMessageDelayed(0, 1000);
                 }
@@ -427,6 +399,10 @@ public class VideoRecordTool {
             return true;
         }
         return false;
+    }
+
+    public void setQuality(float quality) {
+        mQuality = quality;
     }
 
     /**
