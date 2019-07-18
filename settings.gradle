@@ -1,1 +1,1 @@
-include ':app', ':test', ':videocompressor'
+include ':app', ':myapplication'

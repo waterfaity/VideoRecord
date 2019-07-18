@@ -13,6 +13,13 @@
         android:layout_height="match_parent"
         android:layout_centerInParent="true"/>
 
+    <ImageView
+        android:id="@+id/iv_back"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:padding="15dp"
+        android:src="@mipmap/icon_back"/>
+
     <RelativeLayout
         android:id="@+id/rel_time"
         android:layout_width="60dp"
