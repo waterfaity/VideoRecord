@@ -12,6 +12,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +26,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private TextView mTVTime;
     private SurfaceView mSurfaceView;
     private CheckBox mBTRecord;
+    private ImageView mBack;
     private VideoRecordTool mVideoRecordTool;
     private RelativeLayout mRLTime;
 
@@ -79,6 +81,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     }
 
     private void findView() {
+        mBack = findViewById(R.id.iv_back);
         mBTRecord = findViewById(R.id.tb_record);
         mTVTime = findViewById(R.id.time);
         mRLTime = findViewById(R.id.rel_time);
@@ -89,6 +92,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private void initView() {
         mBTRecord.setOnCheckedChangeListener(this);
         mIVChangeCamera.setOnClickListener(this);
+        mBack.setOnClickListener(this);
         mRLTime.setRotation(currentOrientation);
         mIVChangeCamera.setRotation(currentOrientation);
     }
@@ -130,6 +134,9 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             }
             File file = new File(mVideoCachePath, MD5Utils.getMD5Code(new Date().getTime() + "") + ".mp4");
             mVideoPath = file.getAbsolutePath();
+        }
+        if (!new File(mVideoPath).getParentFile().exists()) {
+            new File(mVideoPath).getParentFile().mkdirs();
         }
     }
 
@@ -229,10 +236,18 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     @Override
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        if (isChecked) {
-            mVideoRecordTool.start();
+        if (mVideoRecordTool.isCanClick()) {
+            if (isChecked) {
+                mBack.setVisibility(View.GONE);
+                mVideoRecordTool.start();
+            } else {
+                mVideoRecordTool.stop();
+                mBack.setVisibility(View.VISIBLE);
+            }
         } else {
-            mVideoRecordTool.stop();
+            mBTRecord.setOnCheckedChangeListener(null);
+            mBTRecord.setChecked(!isChecked);
+            mBTRecord.setOnCheckedChangeListener(this);
         }
     }
 
@@ -246,7 +261,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
             } else if (!backCamera && mVideoRecordTool.isBackCameraCanUse()) {
                 resetView(true);
             }
+        } else if (v.getId() == R.id.iv_back) {
+            finish();
         }
     }
-
 }

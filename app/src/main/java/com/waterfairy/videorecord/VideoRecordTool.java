@@ -60,6 +60,11 @@ public class VideoRecordTool {
     private int videoHeight = 720;
     private int orientation;
     private float mQuality;//质量
+    private boolean canClick = true;//每次点击1秒延时后才可下次点击
+
+    public boolean isCanClick() {
+        return canClick;
+    }
 
 
     public VideoRecordTool() {
@@ -263,6 +268,11 @@ public class VideoRecordTool {
      * 开始录制
      */
     public void start() {
+
+        if (!canClick) return;
+        canClick = false;
+        getHandler().removeMessages(1);
+        getHandler().sendEmptyMessageDelayed(1, 1000);
         if (!isRecording) {
             if (initMediaRecord()) {
                 try {
@@ -310,6 +320,10 @@ public class VideoRecordTool {
     }
 
     private void stop(boolean pause) {
+        if (!canClick) return;
+        canClick = false;
+        getHandler().removeMessages(1);
+        getHandler().sendEmptyMessageDelayed(1, 1000);
         Log.i(TAG, "stop: ");
         if (mediaRecorder != null) {
             if (isRecording) {
@@ -334,20 +348,26 @@ public class VideoRecordTool {
     }
 
     private Handler getHandler() {
-        return new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                if (onVideoRecordListener != null)
-                    onVideoRecordListener.onRecordingVideo(currentTime);
-                if (currentTime >= maxLen) {
-                    //录制结束
-                    stop();
-                } else {
-                    currentTime++;
-                    handler.sendEmptyMessageDelayed(0, 1000);
+        if (handler == null)
+            handler = new Handler() {
+                @Override
+                public void handleMessage(Message msg) {
+                    if (msg.what == 1) {
+                        canClick = true;
+                    } else {
+                        if (onVideoRecordListener != null)
+                            onVideoRecordListener.onRecordingVideo(currentTime);
+                        if (currentTime >= maxLen) {
+                            //录制结束
+                            stop();
+                        } else {
+                            currentTime++;
+                            handler.sendEmptyMessageDelayed(0, 1000);
+                        }
+                    }
                 }
-            }
-        };
+            };
+        return handler;
     }
 
 
