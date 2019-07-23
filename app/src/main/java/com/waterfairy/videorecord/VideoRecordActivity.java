@@ -1,12 +1,10 @@
 package com.waterfairy.videorecord;
 
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
@@ -41,6 +39,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     public static final String STR_VIDEO_PATH = "record_video_path";//绝对路径
     public static final String STR_VIDEO_SAVE_PATH = "record_video_cache_path";//文件夹
     public static final String STR_VIDEO_DURATION = "record_video_duration";
+    public static final String STR_VIDEO_MIN_SECOND = "record_video_min_second";
+    public static final String STR_SHOW_MIN_SECOND = "record_video_show_min_second";
     public static final String STR_FOR_RESULT = "result_str";
     public static final String RESULT_STR_VIDEO_PATH = "data";
 
@@ -54,6 +54,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
     private String mVideoCachePath;//视频文件夹
     private ScreenOrientationTool screenOrientationTool;
     private int currentOrientation = 0;
+    private int mMinSecond;//最小时间
+    private boolean mShowMinSecond;//显示最小录制时间
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +73,8 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
         Intent intent = getIntent();
         mVideoPath = intent.getStringExtra(STR_VIDEO_PATH);
         mDuration = intent.getIntExtra(STR_VIDEO_DURATION, 60);
+        mMinSecond = intent.getIntExtra(STR_VIDEO_MIN_SECOND, 5);
+        mShowMinSecond = intent.getBooleanExtra(STR_SHOW_MIN_SECOND, true);
         if (mDuration <= 0) mDuration = 60;
         mVideoCachePath = intent.getStringExtra(STR_VIDEO_SAVE_PATH);
         mStrResult = intent.getStringExtra(STR_FOR_RESULT);
@@ -99,9 +103,10 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
 
     private void initData() {
-        mVideoRecordTool = VideoRecordTool.getInstance();
+        mVideoRecordTool = VideoRecordTool.newInstance();
         mVideoRecordTool.setOnVideoRecordListener(this);
         mVideoRecordTool.setMaxLenTime(mDuration);
+        mVideoRecordTool.setMinLen(mMinSecond);
         mVideoRecordTool.setQuality(mQuality);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             mVideoRecordTool.setAngle(90);
@@ -210,7 +215,7 @@ public class VideoRecordActivity extends AppCompatActivity implements OnVideoRec
 
     @Override
     public void onRecordVideoStart() {
-        Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "开始录制" + (mShowMinSecond ? (",至少要录制" + mMinSecond + "秒") : ""), Toast.LENGTH_SHORT).show();
         mIVChangeCamera.setVisibility(View.GONE);
     }
 

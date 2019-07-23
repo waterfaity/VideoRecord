@@ -1,7 +1,6 @@
 package com.waterfairy.videorecord;
 
 import android.hardware.Camera;
-import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Handler;
@@ -22,8 +21,6 @@ import java.io.IOException;
 
 public class VideoRecordTool {
     private static final String TAG = "VideoRecordTool";
-    //单例
-    private static VideoRecordTool videoRecordTool;
     //静态定值量
     private int ERROR_FILE_NOT_EXIST = 1;//文件不存在
     private int ERROR_MEDIA_RECORD_PREPARE = 2;//mediaRecorder 准备失败
@@ -52,6 +49,7 @@ public class VideoRecordTool {
     private int currentTime = 0;
     private int angle = -1;//camera angle
     private int maxLen = 60;//max len  time   default 60s
+    private int minLen = 5;//最小  default 5
     private boolean isBackCamera = true;
     private boolean isFrontCameraCanUse = false;
     private boolean isBackCameraCanUse = false;
@@ -73,9 +71,8 @@ public class VideoRecordTool {
         maxLen = 60;
     }
 
-    public static VideoRecordTool getInstance() {
-        if (videoRecordTool == null) videoRecordTool = new VideoRecordTool();
-        return videoRecordTool;
+    public static VideoRecordTool newInstance() {
+        return new VideoRecordTool();
     }
 
     public VideoRecordTool initViewAndPath(SurfaceView surfaceView, String videoPath) {
@@ -225,17 +222,17 @@ public class VideoRecordTool {
         //这两项需要放在setOutputFormat之前
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-        // Set output file format，输出格式
+        //Set output file format，输出格式
         mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         //必须在setEncoder之前
         mediaRecorder.setVideoFrameRate(30);  //帧数  一分钟帧，15帧就够了
         mediaRecorder.setVideoSize(videoWidth, videoHeight);
 
-        // 这两项需要放在setOutputFormat之后
+        //这两项需要放在setOutputFormat之后
         mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        //设置所录制视频的编码位率。
-        mediaRecorder.setVideoEncodingBitRate((int) (mQuality * videoWidth * videoHeight));//第一个数字越大，清晰度就越高，考虑文件大小的缘故，就调整为1
+        //设置所录制视频的编码位率。  bit /  s   bps  1.5*720*1280 = 1,382,400(b) / 8 = 172,800(B)(每秒172KB 10秒1.72MB) / 30 = 5,760B(每帧5.7KB)
+        mediaRecorder.setVideoEncodingBitRate((int) (mQuality * videoWidth * videoHeight));//第一个数字越大，清晰度就越高，考虑文件大小的缘故，就调整为1.5
         if (angle != -1) {
             if (isBackCamera) {
                 mediaRecorder.setOrientationHint((angle + orientation) % 360);
@@ -272,7 +269,7 @@ public class VideoRecordTool {
         if (!canClick) return;
         canClick = false;
         getHandler().removeMessages(1);
-        getHandler().sendEmptyMessageDelayed(1, 1000);
+        getHandler().sendEmptyMessageDelayed(1, (minLen + 1) * 1000);
         if (!isRecording) {
             if (initMediaRecord()) {
                 try {
@@ -286,6 +283,8 @@ public class VideoRecordTool {
                         onVideoRecordListener.onRecordVideoStart();
                     isRecording = true;
                 } catch (Exception e) {
+                    canClick = true;
+                    getHandler().removeMessages(1);
                     isRecording = false;
                     e.printStackTrace();
                     if (onVideoRecordListener != null) {
@@ -293,6 +292,8 @@ public class VideoRecordTool {
                     }
                 }
             } else {
+                canClick = true;
+                getHandler().removeMessages(1);
                 if (onVideoRecordListener != null) {
                     onVideoRecordListener.onRecordVideoError(ERROR_MEDIA_RECORD_PREPARE, "视频录制准备失败");
                 }
@@ -322,8 +323,8 @@ public class VideoRecordTool {
     private void stop(boolean pause) {
         if (!canClick) return;
         canClick = false;
-        getHandler().removeMessages(1);
-        getHandler().sendEmptyMessageDelayed(1, 1000);
+//        getHandler().removeMessages(1);
+//        getHandler().sendEmptyMessageDelayed(1, 1000);
         Log.i(TAG, "stop: ");
         if (mediaRecorder != null) {
             if (isRecording) {
@@ -332,12 +333,17 @@ public class VideoRecordTool {
                 if (onVideoRecordListener != null)
                     onVideoRecordListener.onRecordVideoEnd(filePath, pause);
                 handler.removeMessages(0);
+                canClick = false;//结束之后不可以再录制
             } else {
+                canClick = true;
+                getHandler().removeMessages(1);
                 if (onVideoRecordListener != null)
                     onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_NO_RECORDING, "停止失败,未开始录制");
             }
 
         } else {
+            canClick = true;
+            getHandler().removeMessages(1);
             if (onVideoRecordListener != null)
                 onVideoRecordListener.onRecordVideoWarm(WARM_MEDIA_RECORDER_IS_NULL, "停止失败,未初始化视频录制器");
         }
@@ -362,7 +368,7 @@ public class VideoRecordTool {
                             stop();
                         } else {
                             currentTime++;
-                            handler.sendEmptyMessageDelayed(0, 1000);
+                            sendEmptyMessageDelayed(0, 1000);
                         }
                     }
                 }
@@ -423,6 +429,15 @@ public class VideoRecordTool {
 
     public void setQuality(float quality) {
         mQuality = quality;
+    }
+
+    public VideoRecordTool setMinLen(int minLen) {
+        this.minLen = minLen;
+        return this;
+    }
+
+    public int getMinLen() {
+        return minLen;
     }
 
     /**

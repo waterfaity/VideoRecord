@@ -22,7 +22,6 @@ import java.util.Date;
  */
 
 public class VideoRecordSysTool {
-    private static VideoRecordSysTool videoRecordSysTool;
     private int limitTime;// s
     private float videoQuality = -1;//质量
     private int limitSize;//字节
@@ -34,11 +33,10 @@ public class VideoRecordSysTool {
 
     }
 
-    public static VideoRecordSysTool getInstance() {
-        if (videoRecordSysTool == null)
-            videoRecordSysTool = new VideoRecordSysTool();
-        videoRecordSysTool.reset();
-        return videoRecordSysTool;
+    public static VideoRecordSysTool newInstance() {
+
+        return new VideoRecordSysTool();
+
     }
 
     private void reset() {
